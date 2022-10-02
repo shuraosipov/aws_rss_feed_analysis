@@ -1,18 +1,15 @@
-import sys
-import json
 import os
+import sys
+import logging
+import json
 import pandas as pd
 import feedparser
 from common_utilities.date_helpers import generate_start_date, string_to_date, date_to_string
 from common_utilities.upload import upload_to_s3
-
-BUCKET_NAME = os.environ['BUCKET_NAME']
-DAYS_RANGE = int(os.environ['DAYS_RANGE'])
-FEED_URL = os.environ['FEED_URL']
+from common_utilities.notifications import publish_sns_message
 
 
 def check_new_entries_exist(feed, start_time):
-    # We do not want to start feed processing if it was not updated since the last check.
     feed_update_time = string_to_date(feed.feed['updated'])
     check_if_feed_was_updated_recently(start_time, feed_update_time)
 
@@ -47,27 +44,30 @@ def generate_table(feed, days_range) -> pd.DataFrame:
     check_new_entries_exist(feed, start_time)
     return convert_feed_to_dataframe(feed, start_time)
 
-def save_to_s3(bucket_name, df) -> None:
-    upload_to_s3(bucket_name, df)
-
 
 def lambda_handler(event, context):
     
-    print(BUCKET_NAME)
-    print(DAYS_RANGE)
-    print(FEED_URL)
+    BUCKET_NAME = os.environ['BUCKET_NAME']
+    DAYS_RANGE = int(os.environ['DAYS_RANGE'])
+    FEED_URL = os.environ['FEED_URL']
+    SNS_TOPIC_ARN = os.environ['SNS_TOPIC_ARN']
 
-    # load feed 
-    feed = feedparser.parse(FEED_URL)
-
-    # generate table
-    df = generate_table(feed, DAYS_RANGE)
-
-    # save a dataframe directly to S3
-    save_to_s3(BUCKET_NAME, df)
-    
-
-    return {
-        'statusCode': 200,
-        'body': json.dumps('Feed successfully uploaded to S3!')
-    }
+    try:
+        feed = feedparser.parse(FEED_URL)
+        df = generate_table(feed, DAYS_RANGE)
+        s3_uri = upload_to_s3(BUCKET_NAME, df)
+        
+        publish_sns_message(
+            topic_arn=SNS_TOPIC_ARN, 
+            subject="RSS Feed Collector. New entries found!",
+            message=f"""There are {df.shape[0]} new entries. 
+            S3 URI: {s3_uri}"""
+        )
+        
+        return {
+            'statusCode': 200,
+            'body': json.dumps(f'Feed successfully uploaded to S3! New entries added {df.shape[0]}')
+        }
+    except Exception as e:
+        logging.error(e)
+        raise e

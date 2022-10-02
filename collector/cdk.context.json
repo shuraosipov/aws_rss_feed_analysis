@@ -1,0 +1,10 @@
+{
+    "feed_url": "https://aws.amazon.com/about-aws/whats-new/recent/feed/",
+    "bucket_name": "shuraosipov-rss-feed-analysis",
+    "days_range": "7",
+    "sns_topic_arn": "arn:aws:sns:us-east-1:419091122511:shuraosipov-default-topic",
+    "layer_version_arns":[
+        "arn:aws:lambda:us-east-1:419091122511:layer:feedparser:2",
+        "arn:aws:lambda:us-east-1:336392948345:layer:AWSSDKPandas-Python39:1"
+    ]
+}
