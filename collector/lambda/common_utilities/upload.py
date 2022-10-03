@@ -14,7 +14,7 @@ def upload_to_s3(bucket_name, df, object_name=None) -> str:
         object_name = f"{current_date()}_feed.csv"
 
     try:
-        s3.Object(bucket_name, object_name).put(Body=df.to_csv(index=False))
+        s3.Object(bucket_name, object_name).put(Body=df.to_csv(index=False, sep=';'))
     except ClientError as e:
         logging.error(e)
         raise S3UploadException(e)
