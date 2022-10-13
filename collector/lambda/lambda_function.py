@@ -4,7 +4,7 @@ import logging
 import json
 import pandas as pd
 import feedparser
-from common_utilities.date_helpers import generate_start_date, string_to_date, date_to_string
+from common_utilities.date_helpers import generate_start_date, string_to_date, date_to_string, current_date
 from common_utilities.upload import upload_to_s3
 from common_utilities.notifications import publish_sns_message
 
@@ -52,7 +52,8 @@ def lambda_handler(event, context):
         
         df = generate_table(feed, DAYS_RANGE)
         
-        s3_uri = upload_to_s3(BUCKET_NAME, df)
+        s3_uri = upload_to_s3(BUCKET_NAME, df, object_name=f"landing/{current_date()}_feed.csv")
+        print(s3_uri)
         
         publish_sns_message(
             topic_arn=SNS_TOPIC_ARN, 
