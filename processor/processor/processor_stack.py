@@ -18,13 +18,14 @@ class ProcessorStack(Stack):
 
 
         # glue workflow
-        workflow = glue.CfnWorkflow(self, "workflow", name="RssFeedProcessorWorkflow", 
+        workflow = glue.CfnWorkflow(self, "RssFeedProcessorGlueWorkflow", 
+                name="RssFeedProcessorGlueWorkflow", 
                 max_concurrent_runs=1,
                 description="ETL workflow to cleanup and processing AWS RSS Feed data",
         )
 
 
-        iam_role_glue = iam.Role(self, "glue-shell-job-role", 
+        iam_role_glue = iam.Role(self, "RssFeedProcessorGlueShellJobRole", 
             assumed_by=iam.ServicePrincipal("glue.amazonaws.com"),
             role_name="RssFeedProcessorGlueShellJobRole",
             description="Glue shell job role to run ETL workflow",
@@ -60,20 +61,23 @@ class ProcessorStack(Stack):
         ))
 
         # glue shell job
-        job = glue_alpha.Job(self, "PythonShellJob",
+        job = glue_alpha.Job(self, "RssFeedProcessorGlueJob",
             executable=glue_alpha.JobExecutable.python_shell(
                 glue_version=glue_alpha.GlueVersion.V1_0,
-                python_version=glue_alpha.PythonVersion.THREE,
+                python_version=glue_alpha.PythonVersion.THREE_NINE,
                 script=glue_alpha.Code.from_asset("scripts/script.py"),
             ),
             description="Cleanup and Processing for AWS RSS Feed data",
             role=iam_role_glue,
+            max_capacity=2,
+            max_retries=1,
+            timeout=glue_alpha.JobTimeout(duration=glue_alpha.Duration.minutes(10)),
         )
 
         # glue workflow
         trigger = glue.CfnTrigger(self, "trigger",
-            name="RssFeedProcessorTrigger",
-            type="ON_DEMAND",
+            name="RssFeedProcessorGlueTrigger",
+            type="EVENT",
             workflow_name=workflow.name,
             actions=[
                 glue.CfnTrigger.ActionProperty(
@@ -88,10 +92,10 @@ class ProcessorStack(Stack):
         )
 
         # iam role for event bridge rule to trigger aws glue shell job
-        iam_role_event_bridge = iam.Role(self, "event-bridge-role",
+        iam_role_event_bridge = iam.Role(self, "RssFeedProcessorEventBridgeRuleRole",
             assumed_by=iam.ServicePrincipal("events.amazonaws.com"),
             role_name="RssFeedProcessorEventBridgeRole",
-            description="Event bridge role to trigger glue shell job",
+            description="Event bridge role to trigger Glue Workflow",
         )
 
         # attach policy to event bridge role
@@ -110,13 +114,13 @@ class ProcessorStack(Stack):
         
         # add target to event bridge rule
         glue_workflow_target = events.CfnRule.TargetProperty(
-            id="target-workflow-id",
+            id="GlueWorkflowTargetId",
             arn="arn:aws:glue:us-east-1:419091122511:workflow/RssFeedProcessorWorkflow",
             role_arn=iam_role_event_bridge.role_arn,
         )
 
         # event bridge rule to trigger aws glue shell job
-        rule = events.Rule(self, "rule",
+        rule = events.Rule(self, "RssFeedProcessorEventBridgeToGlueWorkflowRule",
             description="Event bridge rule to trigger glue workflow",
             event_pattern=events.EventPattern(
                 source=["aws.s3"],
@@ -126,7 +130,7 @@ class ProcessorStack(Stack):
                         "name": ["shuraosipov-rss-feed-analysis"]
                         },
                     "object": {
-                        "key": [{ "prefix": "landing/" }]
+                        "key": [{ "prefix": "landing" }]
                     }
                 }
             ),
