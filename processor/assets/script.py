@@ -1,19 +1,19 @@
+from ast import arg
 import sys
-import pandas as pd
+import re
+import logging
+from datetime import datetime
 import boto3
 import pyathena
-import re
+import pandas as pd
 from botocore.exceptions import ClientError
-import logging
-
-def read_file_from_s3(bucket, key):
-    s3 = boto3.resource('s3')
-    obj = s3.Object(bucket, key)
-    return pd.read_csv(obj.get()['Body'])
+from awsglue.utils import getResolvedOptions
 
 
-
-
+def current_date():
+    return datetime.now().replace(
+        microsecond=0
+    ).isoformat()
 
 def extract_product_names(string) -> str:
     """
@@ -23,6 +23,7 @@ def extract_product_names(string) -> str:
     """
     products = re.findall(r'general:products/(.*?)(?:,|$)', string)
     return " ".join(products)
+
 
 def extract_category_names(string) -> str:
     """
@@ -34,13 +35,11 @@ def extract_category_names(string) -> str:
     return " ".join(categories)
 
 
-
-def read_file_from_s3(bucket, table):
+def read_file_from_s3(bucket, database, table):
     """ use pyathena to query data from S3, and save results to a pandas dataframe"""
     conn = pyathena.connect(s3_staging_dir=f's3://{bucket}/athena_output/', region_name='us-east-1') 
-    df = pd.read_sql(f"SELECT * FROM {table}", conn)
+    df = pd.read_sql(f"SELECT * FROM {database}.{table}", conn)
     return df
-
 
 def cleanup_data(df):
     # drop rows with NaN values
@@ -85,10 +84,30 @@ def save_df_to_s3(bucket_name, df, object_name=None) -> str:
     s3_uri = f"s3://{bucket_name}/{object_name}"
     return s3_uri
 
-if __name__ == "__main__":
-    bucket = 'shuraosipov-rss-feed-analysis'
+def send_sns_message(topic_arn, s3_uri):
+    sns = boto3.client('sns')
 
-    df = read_file_from_s3(bucket, table='aws_feed_landing')
+    try:
+        response = sns.publish(
+            TopicArn=topic_arn,
+            Message=f"""New data has been processed and saved to {s3_uri}.""",
+            Subject='RSS Feed Data Processing Notification'
+        )
+        return response
+    except ClientError as e:
+        logging.error(e)
+        raise e
+
+if __name__ == "__main__":
+
+    args = getResolvedOptions(sys.argv, ['bucket','topic_arn','table', 'database'])
+    
+    bucket = args['bucket']
+    topic_arn = args['topic_arn']
+    table = args['table']
+    database = args['database']
+
+    df = read_file_from_s3(bucket, database, table)
 
     df = cleanup_data(df)
 
@@ -96,12 +115,11 @@ if __name__ == "__main__":
 
     df = explode(df)
 
-    save_df_to_s3(bucket, df, 'processed/feed_2.csv')
+    s3_uri = save_df_to_s3(bucket, df, f'processed/report_{current_date()}.csv')
+
+    send_sns_message(topic_arn, s3_uri)
 
     print('Done')
-    #print(df.head())
-
-
-    # send email with the link to the result
+    
 
 

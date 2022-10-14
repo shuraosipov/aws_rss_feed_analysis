@@ -1,0 +1,8 @@
+{
+    "bucket_name": "shuraosipov-rss-feed-analysis",
+    "sns_topic_arn": "arn:aws:sns:us-east-1:419091122511:shuraosipov-default-topic",
+    "aws_account_id": "419091122511",
+    "aws_region": "us-east-1",
+    "table_name": "aws_feed_landing",
+    "database_name": "aws_feed"
+}
