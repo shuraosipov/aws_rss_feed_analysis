@@ -23,7 +23,7 @@ def check_if_feed_was_updated_recently(start_time, update_time):
 def convert_feedparser_to_dataframe(feed, start_time) -> pd.DataFrame:
     df = pd.DataFrame()
     df['id'] = [entry.id for entry in feed.entries]
-    df['category'] = [entry['category'] for entry in feed['entries']]
+    df['category'] = [entry['tags'] for entry in feed['entries']]
     df['title'] = [entry['title'] for entry in feed['entries']]
     df['link'] = [entry['link'] for entry in feed['entries']]
     df['published'] = [entry['published'] for entry in feed['entries']]
@@ -40,20 +40,24 @@ def generate_table(feed, days_range) -> pd.DataFrame:
     return convert_feedparser_to_dataframe(feed, start_time)
 
 
+def get_feed_data(url) -> feedparser.FeedParserDict:
+    feed = feedparser.parse(url)
+    return feed
+
+
 def lambda_handler(event, context):
     
+    FEED_URL = os.environ['FEED_URL']
     BUCKET_NAME = os.environ['BUCKET_NAME']
     DAYS_RANGE = int(os.environ['DAYS_RANGE'])
-    FEED_URL = os.environ['FEED_URL']
     SNS_TOPIC_ARN = os.environ['SNS_TOPIC_ARN']
 
     try:
-        feed = feedparser.parse(FEED_URL)
+        feed = get_feed_data(FEED_URL)  
         
         df = generate_table(feed, DAYS_RANGE)
         
         s3_uri = upload_to_s3(BUCKET_NAME, df, object_name=f"landing/{current_date()}_feed.csv")
-        print(s3_uri)
         
         publish_sns_message(
             topic_arn=SNS_TOPIC_ARN, 
@@ -68,4 +72,9 @@ def lambda_handler(event, context):
         }
     except Exception as e:
         logging.error(e)
+        publish_sns_message(
+            topic_arn=SNS_TOPIC_ARN,
+            subject="RSS Feed Collector. Exception!",
+            message=f"""Exception occured: {e}"""
+        )
         raise e
