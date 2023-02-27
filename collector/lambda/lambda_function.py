@@ -86,7 +86,7 @@ def lambda_handler(event, context):
 
         # Upload to S3
         s3_uri = upload_to_s3(
-            bucket_name, df, object_name=f"testing/{current_date()}_feed.csv"
+            bucket_name, df, object_name=f"landing/{current_date()}_feed.csv"
         )
 
         # Publish SNS message
