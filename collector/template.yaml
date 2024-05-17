@@ -40,7 +40,7 @@ Resources:
       Code:
         S3Bucket:
           Fn::Sub: cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}
-        S3Key: 32e2789ed93fb99c0a4556abc0372f3045999480469df4040e29494fc5595591.zip
+        S3Key: 5419658578e060f32ff277d456bec3de0c0a442df835dad2e11ed527edcce177.zip
       Role:
         Fn::GetAtt:
           - LambdaRole3A44B857
@@ -53,8 +53,8 @@ Resources:
           SNS_TOPIC_ARN: arn:aws:sns:us-east-1:419091122511:shuraosipov-default-topic
       Handler: lambda_function.lambda_handler
       Layers:
-        - arn:aws:lambda:us-east-1:336392948345:layer:AWSSDKPandas-Python39:1
         - arn:aws:lambda:us-east-1:419091122511:layer:feedparser:2
+        - arn:aws:lambda:us-east-1:336392948345:layer:AWSSDKPandas-Python39:1
       Runtime: python3.9
       Timeout: 15
     DependsOn:
@@ -62,7 +62,7 @@ Resources:
       - LambdaRole3A44B857
     Metadata:
       aws:cdk:path: CollectorStack/CollectorFunction/Resource
-      aws:asset:path: /Users/shuraosipov/Documents/workspace/aws_rss_feed_analysis/collector/lambda
+      aws:asset:path: /home/shuraosipov/workspace/aws_rss_feed_analysis/collector/lambda
       aws:asset:is-bundled: false
       aws:asset:property: Code
   CollectorRuleE13FEC75:
@@ -96,7 +96,7 @@ Resources:
   CDKMetadata:
     Type: AWS::CDK::Metadata
     Properties:
-      Analytics: v2:deflate64:H4sIAAAAAAAA/02O0Q6CMAxFv8X3UY0QEx+FxGeCH0DGqFhhW0I3DVn4dwdo4tO5tydNe4Qsg8NOvjlRbZ8M1EC4Oal6EUd1IKkhVHZAUdzNytIOpKalbmkWg9RNKyFcvVGOrFncfy5x1MQc2yw4rSUzOobLgtgh96pHl0tGgS80UYXKfw9GzrOokK0fFYp1J37XkelW/xMxF9a05NYj5eQe1uxTOMNp92SiZPTGkUaoNn4AcLAdoPUAAAA=
+      Analytics: v2:deflate64:H4sIAAAAAAAA/02O3QqDMAxGn8X7mv0og11OYdfiHkBqzVymtmDaDSm++6pusKvzfTmE5AhpCvtIvjlWTRf3VIO/Wak6EUaVJzmAL02PIr/rlYXpSU1L3dIsejnUjQR/dVpZMnpx/7nAcSDm0GbBSSWZ0TJcFoQOmVMd2kwyCnyhDsqX7nswcJ5FiWzcqFCsO+G7lnS7+p8IOTe6IbseKSb7MHqXwBkOp+jJRPHotKUBodz4AS5unz/2AAAA
     Metadata:
       aws:cdk:path: CollectorStack/CDKMetadata/Default
     Condition: CDKMetadataAvailable

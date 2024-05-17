@@ -5,14 +5,14 @@ def current_date():
         microsecond=0
     ).isoformat()
 
-def generate_start_date(range) -> datetime:
-    """ This function creates a datetime object in the past by substracting number of days from now. """
-    result = (datetime.now() - timedelta(days=range)).strftime("%a, %d %b %Y 00:00:05 %z +0000")
+def generate_start_date(days_range) -> datetime:
+    """ This function creates a datetime object in the past by subtracting number of days from now. """
+    result = (datetime.utcnow() - timedelta(days=days_range)).strftime("%a, %d %b %Y 00:00:05 GMT")
     return string_to_date(result)
 
 def string_to_date(string):
     """ This function converts a string representation of date to the datetime object """
-    return datetime.strptime(string, "%a, %d %b %Y %H:%M:%S %z")
+    return datetime.strptime(string, "%a, %d %b %Y %H:%M:%S %Z")
 
 def date_to_string(datetime_obj):
     """ This function converts datetime object to a string """
